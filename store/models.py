@@ -1,8 +1,12 @@
-from django.db import models
+from uuid import uuid4
+
 from cloudinary.models import CloudinaryField
 from django.core.validators import MaxValueValidator
+from django.db import models
+from django.core.validators import MinValueValidator
 
 from users.models import User
+
 
 class Category(models.Model):
     name          = models.CharField(max_length=50)
@@ -87,3 +91,19 @@ class ProductGallery(models.Model):
     class Meta:
         verbose_name = "product gallery"
         verbose_name_plural = "product galleries"
+
+
+
+class Cart(models.Model):
+    id = models.UUIDField(primary_key=True,default=uuid4)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart,on_delete=models.CASCADE,related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+
+
+    class Meta:
+        unique_together = [['cart', 'product']]

@@ -1,22 +1,21 @@
 from django.shortcuts import render
-from rest_framework import viewsets
-from rest_framework.permissions import AllowAny,IsAuthenticated,IsAuthenticatedOrReadOnly
+from rest_framework import status, viewsets
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.mixins import RetrieveModelMixin,CreateModelMixin,DestroyModelMixin
 
-from .models import Product,Category,SubCategory,ReviewRating
-from .serializers import ProductSerializer,CategorySerializer,SubCategorySerializer
+from .models import Category, Product, ReviewRating, SubCategory,Cart,CartItem
+from .serializers import (  CategorySerializer, ProductSerializer,
+                            SubCategorySerializer,CartSerializer,
+                            CartItemSerializer,AddCartItemSerializer,UpdateCartItemSerializer
+                            )
 
 
-class ProductModelViewSet(viewsets.ModelViewSet):
+class ProductModelViewSet(viewsets.ReadOnlyModelViewSet):
     queryset           = Product.objects.all()
     permission_classes = [IsAuthenticatedOrReadOnly,]
     serializer_class   = ProductSerializer
-
-    def create(self, request, *args, **kwargs):
-        if not request.user.is_staff:
-            return Response("method \POST\ not allowed",status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        return super().create(request, *args, **kwargs)
 
 
 class CategoryModelViewSet(viewsets.ReadOnlyModelViewSet):
@@ -29,3 +28,31 @@ class SubCategoryModelViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = SubCategory.objects.all()
     permission_classes = [AllowAny]
     serializer_class = SubCategorySerializer
+
+
+
+class CartModelViewSet(viewsets.GenericViewSet,RetrieveModelMixin,CreateModelMixin,DestroyModelMixin):
+    queryset = Cart.objects.prefetch_related('items__product').all()
+    permission_classes = [AllowAny]
+    serializer_class = CartSerializer
+
+
+
+class CartItemModelViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get','post','patch','delete']
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return AddCartItemSerializer
+        elif self.request.method == "PATCH":
+            return UpdateCartItemSerializer
+        return CartItemSerializer
+
+
+    def get_serializer_context(self):
+        return {'cart_id':self.kwargs['cart_pk']}
+
+    def get_queryset(self):
+        return CartItem.objects \
+                .filter(cart_id=self.kwargs['cart_pk']) \
+                    .select_related('product')

@@ -4,3 +4,5 @@ djangorestframework==3.14.0
 djangorestframework-simplejwt==5.2.2
 python-dotenv==0.21.0
 drf-social-oauth2==1.2.1
+django-debug-toolbar==3.8.1
+drf-nested-routers==0.93.4

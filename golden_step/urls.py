@@ -21,6 +21,7 @@ from users.views import RegisterView,LogInView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("__debug__/",include('debug_toolbar.urls')),
     path("user/register/",RegisterView.as_view(),name='register'),
     path("user/login/", LogInView.as_view(),name='login'),
     path("user/token/refresh/",TokenRefreshView.as_view(),name='token_refresh'),

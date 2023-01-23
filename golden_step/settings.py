@@ -45,14 +45,17 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "store",
     "cloudinary",
+    "debug_toolbar",
     
     "users",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
+    "rest_framework_nested"
 
 ]
 
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -173,3 +176,9 @@ cloudinary.config(
     api_key       = os.getenv('CLOUDINARY_API_KEY'),
     api_secret    = os.getenv('CLOUDINARY_API_SECRET'),
 )
+
+
+# * ips for debug_toolbar
+INTERNAL_IPS = [
+    "127.0.0.1",
+    ]
