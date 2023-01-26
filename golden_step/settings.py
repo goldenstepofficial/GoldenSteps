@@ -13,6 +13,11 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 from pathlib import Path
 import datetime
 import os
+import cloudinary
+
+from dotenv import load_dotenv
+
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -38,10 +43,14 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "store",
+    "cloudinary",
+    "debug_toolbar",
     
     "users",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
+    "rest_framework_nested"
 
     # Oauth
     'oauth2_provider',
@@ -51,6 +60,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -168,9 +178,25 @@ AUTHENTICATION_BACKENDS = (
 )
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME':datetime.timedelta(minutes=60),
+    'ACCESS_TOKEN_LIFETIME':datetime.timedelta(minutes=6000),
     'REFRESH_TOKEN_LIFETIME':datetime.timedelta(days=1),
     'ROTATE_REFRESH_TOKENS':True,
     'BLACKLIST_AFTER_ROTATION':True,
     'UPDATE_LAST_LOGIN':True,
 }
+
+
+
+# * Cloudinary Configurations
+
+cloudinary.config(
+    cloud_name    = os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key       = os.getenv('CLOUDINARY_API_KEY'),
+    api_secret    = os.getenv('CLOUDINARY_API_SECRET'),
+)
+
+
+# * ips for debug_toolbar
+INTERNAL_IPS = [
+    "127.0.0.1",
+    ]

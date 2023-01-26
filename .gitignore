@@ -137,5 +137,5 @@ GitHub.sublime-settings
 .history
 
 
-store/
 __pycache__
+db.sqlite3
