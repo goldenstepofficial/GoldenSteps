@@ -11,7 +11,8 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
-
+import datetime
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -37,6 +38,16 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    
+    "users",
+    "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
+
+    # Oauth
+    'oauth2_provider',
+    'social_django',
+    'drf_social_oauth2',
+
 ]
 
 MIDDLEWARE = [
@@ -62,6 +73,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "social_django.context_processors.backends",
+                "social_django.context_processors.login_redirect",
             ],
         },
     },
@@ -80,6 +93,21 @@ DATABASES = {
     }
 }
 
+# * PostgreSQL database configuration
+# DATABASES = {
+#     'default':{
+#         'ENGINE':'django.db.backends.postgresql',
+#         'NAME':os.getenv('PG_DATABASE_NAME'),
+#         'USER':os.getenv('PG_USER'),
+#         'PASSWORD':os.getenv('PG_PASSWORD'),
+#         'HOST':os.getenv('PG_HOST','localhost'),
+#         'PORT':os.getenv('PG_PORT','5432'),
+#     }
+# }
+
+
+# use User class as default auth model
+AUTH_USER_MODEL = 'users.User'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -121,3 +149,28 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES':(
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'drf_social_oauth2.authentication.SocialAuthentication',
+    )
+}
+
+AUTHENTICATION_BACKENDS = (
+
+    # * drf_social_oauth2
+    'drf_social_oauth2.backends.DjangoOAuth2',
+
+    # * Django default auth backend
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME':datetime.timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME':datetime.timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS':True,
+    'BLACKLIST_AFTER_ROTATION':True,
+    'UPDATE_LAST_LOGIN':True,
+}
