@@ -26,5 +26,6 @@ urlpatterns = [
     path("user/register/",RegisterView.as_view(),name='register'),
     path("user/login/", LogInView.as_view(),name='login'),
     path("user/token/refresh/",TokenRefreshView.as_view(),name='token_refresh'),
+    path("auth/",include('drf_social_oauth2.urls',namespace='drf')),
     path("store/",include("store.urls"),name="store"),
 ]

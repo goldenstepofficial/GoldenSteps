@@ -29,7 +29,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-^_u_%z+6-uxh_yf8)0s_k3r%$c++spnl=h+$mubsdt*gf24xu^"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = (os.getenv('DEBUG','False').lower() in ('true','1'))
 
 ALLOWED_HOSTS = []
 
@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     "users",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
-    "rest_framework_nested"
+    "rest_framework_nested",
 
     # Oauth
     'oauth2_provider',
@@ -154,6 +154,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR,'static/')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -200,3 +201,9 @@ cloudinary.config(
 INTERNAL_IPS = [
     "127.0.0.1",
     ]
+
+# * allow only trusted hosts
+ALLOWED_HOSTS = ['127.0.0.1','goldenstep.in','159.89.163.122','backend.goldenstep.in']
+
+
+

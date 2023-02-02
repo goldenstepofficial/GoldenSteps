@@ -139,3 +139,4 @@ GitHub.sublime-settings
 
 __pycache__
 db.sqlite3
+static/
