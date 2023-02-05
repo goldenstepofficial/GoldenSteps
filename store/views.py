@@ -50,7 +50,7 @@ class CartItemModelViewSet(viewsets.ModelViewSet):
 
 
     def get_serializer_context(self):
-        return {'cart_id':self.kwargs['cart_pk']}
+        return {'cart_id':self.kwargs['cart_pk'],'request':self.request}
 
     def get_queryset(self):
         return CartItem.objects \

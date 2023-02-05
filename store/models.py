@@ -84,7 +84,7 @@ class Variation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return "{} : {}".format(self.variation_key,self.variation_value)
+        return self.variation_value
 
 
 
@@ -116,8 +116,8 @@ class CartItem(models.Model):
     variation = models.ManyToManyField(Variation,blank=True,null=True)
 
 
-    class Meta:
-        unique_together = [['cart', 'product']]
+    # class Meta:
+    #     unique_together = [['cart', 'product']]
 
     def __str__(self):
         return self.product.name

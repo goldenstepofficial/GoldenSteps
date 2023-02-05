@@ -203,7 +203,7 @@ INTERNAL_IPS = [
     ]
 
 # * allow only trusted hosts
-ALLOWED_HOSTS = ['127.0.0.1','goldenstep.in','159.89.163.122','backend.goldenstep.in']
+ALLOWED_HOSTS = ['127.0.0.1','goldenstep.in','159.89.163.122','backend.goldenstep.in','localhost']
 
 
 

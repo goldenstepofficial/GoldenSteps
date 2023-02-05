@@ -7,8 +7,16 @@ class VariationInline(admin.TabularInline):
     extra = 1
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['name','category','sub_category','price','stock','is_available']
+    list_display = ['id','name','category','sub_category','price','stock','is_available']
     inlines = (VariationInline,)
+
+
+class CartItemAdmin(admin.ModelAdmin):
+    list_display = ['id','product','quantity']
+
+
+class VariationAdmin(admin.ModelAdmin):
+    list_display = ['id','variation_key','variation_value']
 
 admin.site.register(Category)
 admin.site.register(SubCategory)
@@ -16,5 +24,5 @@ admin.site.register(Product,ProductAdmin)
 admin.site.register(ProductGallery)
 admin.site.register(ReviewRating)
 admin.site.register(Cart)
-admin.site.register(CartItem)
-admin.site.register(Variation)
+admin.site.register(CartItem,CartItemAdmin)
+admin.site.register(Variation,VariationAdmin)
