@@ -13,4 +13,8 @@ router.register(r'carts', views.CartModelViewSet,basename='carts')
 cart_router = routers.NestedDefaultRouter(router,"carts",lookup="cart")
 cart_router.register('items', views.CartItemModelViewSet,basename="cart-items")
 
-urlpatterns = router.urls + cart_router.urls
+urlpatterns = [
+            path('assign_cart/<str:cart_id>/',views.assign_cart,name="assign_cart"),
+        ]
+
+urlpatterns += router.urls + cart_router.urls

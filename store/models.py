@@ -105,6 +105,7 @@ class ReviewRating(models.Model):
 
 
 class Cart(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE,blank=True,null=True, related_name="cart")
     id = models.UUIDField(primary_key=True,default=uuid4)
     created_at = models.DateTimeField(auto_now_add=True)
 

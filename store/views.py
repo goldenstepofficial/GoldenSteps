@@ -10,6 +10,7 @@ from .serializers import (  CategorySerializer, ProductSerializer,
                             SubCategorySerializer,CartSerializer,
                             CartItemSerializer,AddCartItemSerializer,UpdateCartItemSerializer
                             )
+from rest_framework.decorators import api_view, permission_classes
 
 
 class ProductModelViewSet(viewsets.ReadOnlyModelViewSet):
@@ -56,3 +57,19 @@ class CartItemModelViewSet(viewsets.ModelViewSet):
         return CartItem.objects \
                 .filter(cart_id=self.kwargs['cart_pk']) \
                     .select_related('product')
+
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def assign_cart(request,cart_id):
+    try:
+        cart = Cart.objects.get(id=cart_id)
+    except:
+        return Response({'error': 'invalid cart_id'},status=status.HTTP_400_BAD_REQUEST)
+
+    cart.user = request.user
+    cart.save()
+    
+    return Response('Cart successfully assigned to current user')
