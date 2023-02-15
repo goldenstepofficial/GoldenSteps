@@ -122,3 +122,16 @@ class CartItem(models.Model):
 
     def __str__(self):
         return self.product.name
+
+
+class WishList(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE,related_name='wishlist')
+    name = models.CharField(max_length=30,default="My WishList")
+    items = models.ManyToManyField(Product)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        unique_together = [ ['user','name'] ]

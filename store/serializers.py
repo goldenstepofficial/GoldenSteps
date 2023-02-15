@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from collections import defaultdict
 
-from .models import Product,Category,SubCategory,Cart,CartItem,Variation
+from .models import Product,Category,SubCategory,Cart,CartItem,Variation,WishList
 
 
 
@@ -188,3 +188,44 @@ class UpdateCartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = ['quantity']
+
+
+
+class WishListSerializer(serializers.ModelSerializer):
+    items = SimpleProductSerializer(many=True,read_only=True)
+    product_id = serializers.IntegerField(write_only=True)
+    class Meta:
+        model = WishList
+        fields = ['user','name','items','product_id']
+
+        extra_kwargs = {
+            'items':{'read_only':True},
+            'user':{'read_only':True},
+        }
+
+    def create(self,validated_data):
+        user = self.context['request'].user
+        product_id = validated_data['product_id']
+        
+        try:
+            print('inside try')
+            wishlist = WishList.objects.get(user=user)
+        except:
+            print('inside except')
+            wishlist = WishList.objects.create(user=user)
+
+        try:
+            product = Product.objects.get(id=product_id)
+        except:
+            raise serializers.ValidationError('Invalid product_id')
+
+        
+        existing_items = wishlist.items.all()
+        print(existing_items)
+        if product not in existing_items:
+            wishlist.items.add(product)
+            product.in_wishlist = True
+            product.save()
+            
+        self.instance = wishlist
+        return self.instance
