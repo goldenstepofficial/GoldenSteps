@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
+from rest_framework_simplejwt import serializers as jwt_serializer,tokens,settings
+from django.contrib.auth.models import update_last_login
+from store.models import Cart
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -34,7 +35,30 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 
-class LogInSerializer(TokenObtainPairSerializer):
+class LogInSerializer(jwt_serializer.TokenObtainPairSerializer):
+    token_class = tokens.RefreshToken
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        print(attrs)
+
+        refresh = self.get_token(self.user)
+
+        data["refresh"] = str(refresh)
+        data["access"] = str(refresh.access_token)
+
+        try:
+            cart = Cart.objects.get(user=self.user)
+        except:
+            cart = None
+        data["cart_id"] = cart.id if cart else None
+
+        if settings.api_settings.UPDATE_LAST_LOGIN:
+            update_last_login(None, self.user)
+
+        return data
+    
     @classmethod
     def get_token(cls,user):
         token = super().get_token(user)

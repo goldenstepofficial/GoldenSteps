@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-^_u_%z+6-uxh_yf8)0s_k3r%$c++spnl=h+$mubsdt*gf24xu^"
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = (os.getenv('DEBUG','False').lower() in ('true','1'))
@@ -44,8 +44,10 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "store",
+    "order",
     "cloudinary",
     "debug_toolbar",
+    "corsheaders",
     
     "users",
     "rest_framework",
@@ -63,6 +65,7 @@ MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -97,23 +100,24 @@ WSGI_APPLICATION = "golden_step.wsgi.application"
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
 DATABASES = {
-    "default": {
+    "dev": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+    },
+
+    # * PostgreSQL database configuration
+    "production": {
+        'ENGINE':'django.db.backends.postgresql',
+        'NAME':os.getenv('PG_DATABASE_NAME'),
+        'USER':os.getenv('PG_USER'),
+        'PASSWORD':os.getenv('PG_PASSWORD'),
+        'HOST':os.getenv('PG_HOST','localhost'),
+        'PORT':os.getenv('PG_PORT','5432'),
     }
 }
 
-# * PostgreSQL database configuration
-# DATABASES = {
-#     'default':{
-#         'ENGINE':'django.db.backends.postgresql',
-#         'NAME':os.getenv('PG_DATABASE_NAME'),
-#         'USER':os.getenv('PG_USER'),
-#         'PASSWORD':os.getenv('PG_PASSWORD'),
-#         'HOST':os.getenv('PG_HOST','localhost'),
-#         'PORT':os.getenv('PG_PORT','5432'),
-#     }
-# }
+
+DATABASES["default"] = DATABASES[ "dev" if DEBUG else "production" ]
 
 
 # use User class as default auth model
@@ -143,7 +147,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Kolkata"
 
 USE_I18N = True
 
@@ -163,7 +167,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES':(
-        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
         'drf_social_oauth2.authentication.SocialAuthentication',
     )
@@ -203,7 +207,43 @@ INTERNAL_IPS = [
     ]
 
 # * allow only trusted hosts
-ALLOWED_HOSTS = ['127.0.0.1','goldenstep.in','159.89.163.122','backend.goldenstep.in']
+CLOUDFLARE_IPV4 = [
+        '103.21.244.0/22', 
+        '103.22.200.0/22', 
+        '103.31.4.0/22', 
+        '104.16.0.0/13', 
+        '104.24.0.0/14', 
+        '108.162.192.0/18', 
+        '131.0.72.0/22', 
+        '141.101.64.0/18', 
+        '162.158.0.0/15', 
+        '172.64.0.0/13', 
+        '173.245.48.0/20', 
+        '188.114.96.0/20', 
+        '190.93.240.0/20', 
+        '197.234.240.0/22', 
+        '198.41.128.0/17'
+    ]
+
+CLOUDFLARE_IPV6 = [
+        '2400:cb00::/32',
+        '2606:4700::/32',
+        '2803:f800::/32',
+        '2405:b500::/32',
+        '2405:8100::/32',
+        '2a06:98c0::/29',
+        '2c0f:f248::/32',
+    ]
+
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'goldenstep.in',
+    '159.89.163.122',
+    'backend.goldenstep.in',
+    'localhost',
+    ]
+
+ALLOWED_HOSTS += CLOUDFLARE_IPV4 + CLOUDFLARE_IPV6
 
 
 

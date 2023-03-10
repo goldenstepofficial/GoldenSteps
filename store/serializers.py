@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from collections import defaultdict
 
-from .models import Product,Category,SubCategory,Cart,CartItem,Variation
+from .models import Product,Category,SubCategory,Cart,CartItem,Variation,WishList
 
 
 
@@ -57,29 +57,42 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class SimpleProductSerializer(serializers.ModelSerializer):
-    variations = serializers.SerializerMethodField()
+    # variations = serializers.SerializerMethodField()
 
-    def get_variations(self,obj):
-        variation_dict = defaultdict(list)
-        variations = Variation.objects.filter(product=obj)
-        for variation in variations:
-            variation_dict[variation.variation_key].append(variation.variation_value)
-        return variation_dict
+    # def get_variations(self,obj):
+    #     variation_dict = defaultdict(list)
+    #     variations = Variation.objects.filter(product=obj)
+    #     for variation in variations:
+    #         variation_dict[variation.variation_key].append(variation.variation_value)
+    #     return variation_dict
     class Meta:
         model = Product
-        fields = ('id','name','price','variations','image','is_available')
+        fields = ('id','name','price','image','is_available')
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['image'] = self.context['request'].build_absolute_uri(instance.image.url)
+        return representation
 
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = SimpleProductSerializer()
     sub_total_price = serializers.SerializerMethodField()
+    variations = serializers.SerializerMethodField()
+
+    def get_variations(self,cart_item):
+        variation_dict = defaultdict(list)
+        variations = cart_item.variation.all()
+        for variation in variations:
+            variation_dict[variation.variation_key].append(variation.variation_value)
+        return variation_dict
 
     def get_sub_total_price(self,cart_item):
         return cart_item.product.price * cart_item.quantity
 
     class Meta:
         model = CartItem
-        fields = ('id','product','quantity','sub_total_price')
+        fields = ('id','product','quantity','variations','sub_total_price')
 
 
 class CartSerializer(serializers.ModelSerializer):
@@ -98,52 +111,75 @@ class CartSerializer(serializers.ModelSerializer):
 
 class AddCartItemSerializer(serializers.ModelSerializer):
     product_id = serializers.IntegerField()
-    # variation  = serializers.JSONField(required=False)
+    variations  = serializers.JSONField(required=False,write_only=True)
+
+    class Meta:
+        model = CartItem
+        fields = ['id','product_id','quantity','variations']
 
     def validate_product_id(self,value):
         if not Product.objects.filter(pk=value).exists():
             raise serializers.ValidationError('No product found for given id')
         return value
 
-    # def validate_variation(self,variations):
-    #     variation_list = []
-    #     if variations is not None and len(variations) > 0:
-    #         for key in variations:
-    #             value = variations[key]
-    #             try:
-    #                 var = Variation.objects.get(product=self.product_id,variation_key__iexact=key,variation_value__iexact=value)
-    #                 variation_list.append(var)
-    #             except:
-    #                 pass
-    #     return variation_list
-            
 
-
-    def save(self,**kwargs):
-        print(self.validated_data)
+    def create(self,validated_data):
         cart_id = self.context['cart_id']
         product_id = self.validated_data['product_id']
         quantity = self.validated_data['quantity']
 
-        print("******************before try************************")
-        try:
-            cart_item = CartItem.objects.get(cart_id=cart_id,product_id=product_id)
-            cart_item.quantity += quantity
-            print("******************before save************************")
-            cart_item.save()
-            self.instance = cart_item
-            print("******************after save************************")
-        except CartItem.DoesNotExist:
-            print("*"*30,"yes error is here","*"*30)
+        variation_list = []
+        variations = self.validated_data.get('variations')
+        if variations is not None and len(variations) > 0:
+            for key in variations:
+                value = variations[key]
+                try:
+                    var = Variation.objects.get(product=product_id,variation_key__iexact=key,variation_value__iexact=value)
+                    variation_list.append(var)
+                except Exception as e:
+                    pass
+
+        cart_items = CartItem.objects.filter(cart=cart_id)
+
+        if cart_items.exists():
+            print('yes items exists')
+            existing_variation_list = []
+            ids = []
+            for item in cart_items:
+                existing_variation_list.append(list(item.variation.all()))
+                ids.append(item.id)
+
+            print(variation_list,existing_variation_list)
+            if variation_list in existing_variation_list:
+                print('yes variation exists')
+                item_index = existing_variation_list.index(variation_list)
+                item_id    = ids[item_index]
+                cart_item  = CartItem.objects.get(id=item_id)
+                cart_item.quantity += quantity
+                cart_item.save()
+                self.instance = cart_item
+            else:
+                self.validated_data.pop('variations')
+                self.instance = CartItem.objects.create(cart_id=cart_id,**self.validated_data)
+                if variation_list is not None:
+                    print(variation_list,'   :   ',*variation_list)
+                    self.instance.variation.add(*variation_list)
+        else:
+
+        # try:
+        #     cart_item = CartItem.objects.get(cart_id=cart_id,product_id=product_id)
+        #     cart_item.quantity += quantity
+        #     cart_item.save()
+        #     self.instance = cart_item
+        # except CartItem.DoesNotExist:
+            # variation_list = validated_data.get('variations')
+            self.validated_data.pop('variations')
             self.instance = CartItem.objects.create(cart_id=cart_id,**self.validated_data)
-            # self.instance.add(self.validated_data)
-        print("validated_data =====>>> ",self.validated_data)
-        print("self instance ======>  ",self.instance)
+            if variation_list is not None:
+                print(variation_list,'   :   ',*variation_list)
+                self.instance.variation.add(*variation_list)
         return self.instance
 
-    class Meta:
-        model = CartItem
-        fields = ['id','product_id','quantity']
 
 
 
@@ -152,3 +188,44 @@ class UpdateCartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = ['quantity']
+
+
+
+class WishListSerializer(serializers.ModelSerializer):
+    items = SimpleProductSerializer(many=True,read_only=True)
+    product_id = serializers.IntegerField(write_only=True)
+    class Meta:
+        model = WishList
+        fields = ['user','name','items','product_id']
+
+        extra_kwargs = {
+            'items':{'read_only':True},
+            'user':{'read_only':True},
+        }
+
+    def create(self,validated_data):
+        user = self.context['request'].user
+        product_id = validated_data['product_id']
+        
+        try:
+            print('inside try')
+            wishlist = WishList.objects.get(user=user)
+        except:
+            print('inside except')
+            wishlist = WishList.objects.create(user=user)
+
+        try:
+            product = Product.objects.get(id=product_id)
+        except:
+            raise serializers.ValidationError('Invalid product_id')
+
+        
+        existing_items = wishlist.items.all()
+        print(existing_items)
+        if product not in existing_items:
+            wishlist.items.add(product)
+            product.in_wishlist = True
+            product.save()
+            
+        self.instance = wishlist
+        return self.instance
