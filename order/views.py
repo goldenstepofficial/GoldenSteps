@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework import status
 from rest_framework.response import Response
 from django.shortcuts import HttpResponse
@@ -22,7 +22,7 @@ load_dotenv()
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def create_order(request,*args,**kwargs):
     """
         if request data contains cart_id then create order for all items in cart
@@ -78,12 +78,13 @@ def create_order(request,*args,**kwargs):
         data['order_total'] = total_price + (total_price * 18)//100
 
         variation_list = []
-        try:
-            variations = json.loads(request.data.get('variations'))
-        except:
-            return Response({"error": "Invalid variation format. please send in json format only"},status=status.HTTP_400_BAD_REQUEST)
 
+        variations = request.data.get('variations')
         if variations is not None and len(variations) > 0:
+            try:
+                variations = json.loads(variations)
+            except:
+                return Response({"error": "Invalid variation format. please send in json format only"},status=status.HTTP_400_BAD_REQUEST)
             for key in variations:
                 value = variations[key]
                 try:
