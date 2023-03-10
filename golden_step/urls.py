@@ -28,4 +28,5 @@ urlpatterns = [
     path("user/token/refresh/",TokenRefreshView.as_view(),name='token_refresh'),
     path("auth/",include('drf_social_oauth2.urls',namespace='drf')),
     path("store/",include("store.urls"),name="store"),
+    path("",include("order.urls")),
 ]
