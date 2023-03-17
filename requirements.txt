@@ -7,3 +7,5 @@ drf-social-oauth2==1.2.1
 django-debug-toolbar==3.8.1
 drf-nested-routers==0.93.4
 psycopg2==2.9.5
+django-cors-headers==3.14.0
+django-filter==22.1

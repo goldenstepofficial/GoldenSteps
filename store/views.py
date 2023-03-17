@@ -11,12 +11,15 @@ from .serializers import (  CategorySerializer, ProductSerializer,
                             CartItemSerializer,AddCartItemSerializer,UpdateCartItemSerializer,WishListSerializer
                             )
 from rest_framework.decorators import api_view, permission_classes
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 class ProductModelViewSet(viewsets.ReadOnlyModelViewSet):
     queryset           = Product.objects.all()
     permission_classes = [IsAuthenticatedOrReadOnly,]
     serializer_class   = ProductSerializer
+    filter_backends    = [DjangoFilterBackend]
+    filterset_fields   = ['category','sub_category','name','price']
 
 
 class CategoryModelViewSet(viewsets.ReadOnlyModelViewSet):
@@ -101,3 +104,48 @@ class WishListModelViewSet(viewsets.ModelViewSet):
         instance.items.remove(product)
         # self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+
+# class ProductRatingViewSet(viewsets.ViewSet):
+#     queryset            = ProductRating.objects.all()
+#     permission_classes  = [IsAuthenticatedOrReadOnly]
+#     http_method_names   = ('get', 'post','delete')
+
+#     def retrieve(self, request,pk=None,*args,**kwargs):
+#         product_id = int(self.kwargs['product_pk'])
+#         queryset   = self.queryset.filter(product=product_id)
+#         review     = get_object_or_404(queryset,pk=pk)
+#         serializer = ProductRatingSerializer(review)
+#         return Response(serializer.data)
+
+
+#     @method_decorator(cache_page(60*15))
+#     def list(self, request,*args,**kwargs):
+#         product_id = int(self.kwargs['product_pk'])
+#         queryset   = self.queryset.filter(product=product_id)
+#         serializer = ProductRatingSerializer(queryset,many=True)
+#         return Response(serializer.data)
+    
+#     def create(self, request, *args, **kwargs):
+#         serializer = ProductRatingSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         product_id = int(self.kwargs['product_pk'])
+#         print(product_id)
+#         if self.queryset.filter(product=product_id,buyer=request.user).exists():
+#             return Response({'error':"you have already rated this Product"},status.HTTP_400_BAD_REQUEST)
+        
+#         orders = Order.objects.filter(product_id=product_id,delivered=True,buyer=request.user)
+#         if not orders.exists():
+#             return Response({'error':"you must purchase this Product before rating it"},status.HTTP_400_BAD_REQUEST)
+
+#         serializer.save(order=orders[0],buyer=request.user)
+#         return Response({"message":"thank you for rating this Product"})
+
+#     def destroy(self,request,pk=None,*args,**kwargs):
+#         product_id = int(self.kwargs['product_pk'])
+#         queryset   = self.queryset.filter(product=product_id)
+#         review = get_object_or_404(queryset,pk=pk,buyer=request.user)
+#         review.delete()
+#         return Response(status=status.HTTP_204_NO_CONTENT)

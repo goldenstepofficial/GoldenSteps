@@ -135,3 +135,19 @@ class WishList(models.Model):
 
     class Meta:
         unique_together = [ ['user','name'] ]
+
+
+# class ProductRating(models.Model):
+#     product       = models.ForeignKey(Product,on_delete=models.CASCADE, related_name='product_ratings')
+#     buyer         = models.ForeignKey(User,on_delete=models.DO_NOTHING,related_name='product_buyer_ratings')
+#     order         = models.OneToOneField(Order,on_delete=models.CASCADE,related_name='product_order_ratings')
+#     title         = models.CharField(max_length=100)
+#     review        = models.TextField()
+#     rating        = models.FloatField(validators=[MaxValueValidator(5)])
+#     is_active     = models.BooleanField(default=True)
+#     created_at    = models.DateTimeField(auto_now_add=True)
+
+
+
+#     def __str__(self):
+#         return f"{self.product}-{self.buyer}"

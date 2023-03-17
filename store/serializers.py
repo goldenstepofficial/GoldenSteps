@@ -2,11 +2,12 @@ from rest_framework import serializers
 from collections import defaultdict
 
 from .models import Product,Category,SubCategory,Cart,CartItem,Variation,WishList
-
+from django.template.defaultfilters import slugify
 
 
 class ProductSerializer(serializers.ModelSerializer):
     variations = serializers.SerializerMethodField()
+    category = serializers.StringRelatedField()
 
     def get_variations(self,obj):
         variation_dict = defaultdict(list)
@@ -22,6 +23,7 @@ class ProductSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['image'] = self.context['view'].request.build_absolute_uri(instance.image.url)
+        representation['slug'] = self.context['view'].request.build_absolute_uri(slugify(instance.name))
         return representation
 
 
@@ -229,3 +231,16 @@ class WishListSerializer(serializers.ModelSerializer):
             
         self.instance = wishlist
         return self.instance
+
+
+
+# class ProductRatingSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = ProductRating
+#         fields = ['id','product','buyer','title','review','rating']
+#         read_only_fields = ('buyer',)
+        
+#     def to_representation(self, instance):
+#         representation = super().to_representation(instance)
+#         representation['buyer_name'] = instance.buyer.name  
+#         return representation

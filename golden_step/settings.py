@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "cloudinary",
     "debug_toolbar",
     "corsheaders",
+    "django_filters",
     
     "users",
     "rest_framework",
