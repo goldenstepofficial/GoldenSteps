@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category,SubCategory,Product,ProductGallery,ReviewRating,Cart,CartItem,Variation,WishList
+from .models import Category,SubCategory,Product,ProductGallery,ReviewRating,Cart,CartItem,Variation,WishList,ProductRating
 
 class VariationInline(admin.TabularInline):
     model = Variation
@@ -32,3 +32,4 @@ admin.site.register(Cart)
 admin.site.register(CartItem,CartItemAdmin)
 admin.site.register(Variation,VariationAdmin)
 admin.site.register(WishList,WishListAdmin)
+admin.site.register(ProductRating)

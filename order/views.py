@@ -22,7 +22,7 @@ load_dotenv()
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+# @permission_classes([IsAuthenticated])
 def create_order(request,*args,**kwargs):
     """
         if request data contains cart_id then create order for all items in cart
@@ -62,6 +62,7 @@ def create_order(request,*args,**kwargs):
             
         data['order_total'] = total_price + (total_price * 18)//100
         data['cart'] = cart_id
+        data['user'] = request.user.id if request.user.is_authenticated else None
         order = create_order_object(data)
 
     else:
@@ -78,12 +79,13 @@ def create_order(request,*args,**kwargs):
         data['order_total'] = total_price + (total_price * 18)//100
 
         variation_list = []
-        try:
-            variations = json.loads(request.data.get('variations'))
-        except:
-            return Response({"error": "Invalid variation format. please send in json format only"},status=status.HTTP_400_BAD_REQUEST)
-
+        variations = request.data.get('variations')
         if variations is not None and len(variations) > 0:
+            try:
+                variations = json.loads(variations)
+            except:
+                return Response({"error": "Invalid variation format. please send in json format only"},status=status.HTTP_400_BAD_REQUEST)
+            
             for key in variations:
                 value = variations[key]
                 try:
@@ -92,9 +94,10 @@ def create_order(request,*args,**kwargs):
                 except Exception as e:
                     pass
 
+        data['user'] = request.user.id if request.user.is_authenticated else None
         order = create_order_object(data)
-
-        order_item = OrderItems.objects.create(order=order,product=product,quantity=quantity,product_price=order.order_total)
+        user = request.user if request.user.is_authenticated else None
+        order_item = OrderItems.objects.create(order=order,product=product,quantity=quantity,product_price=order.order_total,user=user)
         order_item.variation.set(variation_list)
         order_item.save()
     
@@ -183,11 +186,18 @@ def notify_on_payment(request):
                     order_item = OrderItems.objects.create(  
                                                 order=order,product=cart_item.product,
                                                 quantity=cart_item.quantity,
-                                                product_price=cart_item.product.price
+                                                product_price=cart_item.product.price,
+                                                ordered=True
                                                 )
                     order_item.variation.set(cart_item.variation.all())
                     order_item.save()
                 cart_items.delete()
+
+            else:
+                order_items = OrderItems.objects.filter(order=order)
+                for order_item in order_items:
+                    order_item.ordered = True
+                    order_item.save()
 
         except:
             pass

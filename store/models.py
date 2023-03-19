@@ -6,6 +6,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 
 from users.models import User
+# from order.models import Order
 
 
 class Category(models.Model):
@@ -114,7 +115,7 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart,on_delete=models.CASCADE,related_name="items")
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
-    variation = models.ManyToManyField(Variation,blank=True,null=True)
+    variation = models.ManyToManyField(Variation,blank=True)
 
 
     # class Meta:
@@ -137,17 +138,17 @@ class WishList(models.Model):
         unique_together = [ ['user','name'] ]
 
 
-# class ProductRating(models.Model):
-#     product       = models.ForeignKey(Product,on_delete=models.CASCADE, related_name='product_ratings')
-#     buyer         = models.ForeignKey(User,on_delete=models.DO_NOTHING,related_name='product_buyer_ratings')
-#     order         = models.OneToOneField(Order,on_delete=models.CASCADE,related_name='product_order_ratings')
-#     title         = models.CharField(max_length=100)
-#     review        = models.TextField()
-#     rating        = models.FloatField(validators=[MaxValueValidator(5)])
-#     is_active     = models.BooleanField(default=True)
-#     created_at    = models.DateTimeField(auto_now_add=True)
+class ProductRating(models.Model):
+    product       = models.ForeignKey(Product,on_delete=models.CASCADE, related_name='product_ratings')
+    buyer         = models.ForeignKey(User,on_delete=models.DO_NOTHING,related_name='buyer_ratings')
+    order_item    = models.OneToOneField("order.orderitems",on_delete=models.CASCADE)
+    title         = models.CharField(max_length=100)
+    review        = models.TextField()
+    rating        = models.FloatField(validators=[MaxValueValidator(5)])
+    is_active     = models.BooleanField(default=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
 
 
 
-#     def __str__(self):
-#         return f"{self.product}-{self.buyer}"
+    def __str__(self):
+        return f"{self.product}-{self.buyer}"

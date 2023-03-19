@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from collections import defaultdict
 
-from .models import Product,Category,SubCategory,Cart,CartItem,Variation,WishList
+from .models import Product,Category,SubCategory,Cart,CartItem,Variation,WishList,ProductRating
 from django.template.defaultfilters import slugify
 
 
@@ -234,13 +234,13 @@ class WishListSerializer(serializers.ModelSerializer):
 
 
 
-# class ProductRatingSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = ProductRating
-#         fields = ['id','product','buyer','title','review','rating']
-#         read_only_fields = ('buyer',)
+class ProductRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductRating
+        fields = ['id','product','buyer','title','review','rating']
+        read_only_fields = ('buyer',)
         
-#     def to_representation(self, instance):
-#         representation = super().to_representation(instance)
-#         representation['buyer_name'] = instance.buyer.name  
-#         return representation
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['buyer_name'] = instance.buyer.name  
+        return representation

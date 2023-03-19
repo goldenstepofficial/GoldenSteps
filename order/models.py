@@ -63,6 +63,7 @@ class OrderItems(models.Model):
     product         = models.ForeignKey(Product, on_delete=models.CASCADE)
     variation       = models.ManyToManyField(Variation, blank=True)
     quantity        = models.IntegerField()
+    ordered         = models.BooleanField(default=False)
     product_price   = models.IntegerField()
     created_at      = models.DateTimeField(auto_now_add=True)
     updated_at      = models.DateTimeField(auto_now=True)
