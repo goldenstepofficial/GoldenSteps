@@ -118,7 +118,8 @@ DATABASES = {
 }
 
 
-DATABASES["default"] = DATABASES[ "dev" if DEBUG else "production" ]
+# DATABASES["default"] = DATABASES[ "dev" if DEBUG else "production" ]
+DATABASES["default"] = DATABASES["dev"]
 
 
 # use User class as default auth model
