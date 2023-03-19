@@ -13,7 +13,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 class OrderItemAdmin(admin.ModelAdmin):
     model = OrderItems
-    list_display = ('order','user','product','quantity','product_price','created_at')
+    list_display = ('order','user','product','quantity','product_price','ordered','created_at')
 
 admin.site.register(Order,OrderAdmin)
 admin.site.register(OrderItems,OrderItemAdmin)
