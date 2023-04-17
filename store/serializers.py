@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from collections import defaultdict
 
-from .models import Product,Category,SubCategory,Cart,CartItem,Variation,WishList,ProductRating
+from .models import Product,Category,SubCategory,Cart,CartItem,Variation,WishList,ProductRating,ProductGallery
 from django.template.defaultfilters import slugify
 
 
@@ -18,12 +18,21 @@ class ProductSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Product
-        fields = ('id','category','sub_category','name','image','variations','details','price','stock','is_available')
+        fields = ('id','category','sub_category','name','image','variations','details','description','price','stock','is_available')
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['image'] = self.context['view'].request.build_absolute_uri(instance.image.url)
-        representation['slug'] = self.context['view'].request.build_absolute_uri(slugify(instance.name))
+        representation['slug'] = slugify(instance.name)
+
+        product_images = ProductGallery.objects.filter(product=instance)
+        images = []
+        for image in product_images:
+            images.append(self.context['view'].request.build_absolute_uri(image.image.url))
+
+
+        representation['thumbnail'] = self.context['view'].request.build_absolute_uri(instance.image.url)
+        representation['images'] = images
+        representation.pop('image')
         return representation
 
 
@@ -32,7 +41,7 @@ class SubCategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SubCategory
-        fields = ('name','image','desc')
+        fields = ('id','name','image','desc')
 
     def to_representation(self, instance):
         representation =  super().to_representation(instance)
@@ -50,7 +59,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('name','image','desc','sub_categories','products_count')
+        fields = ('id','name','image','desc','sub_categories','products_count')
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -157,11 +166,18 @@ class AddCartItemSerializer(serializers.ModelSerializer):
                 item_index = existing_variation_list.index(variation_list)
                 item_id    = ids[item_index]
                 cart_item  = CartItem.objects.get(id=item_id)
-                cart_item.quantity += quantity
-                cart_item.save()
-                self.instance = cart_item
+                if cart_item.product.id == product_id:
+                    cart_item.quantity += quantity
+                    cart_item.save()
+                    self.instance = cart_item
+                else:
+                    self.validated_data.pop('variations')
+                    self.instance = CartItem.objects.create(cart_id=cart_id,**self.validated_data)
+                    self.instance.variation.add(*variation_list)
+
             else:
-                self.validated_data.pop('variations')
+                if self.validated_data.get('variations') is not None:
+                    self.validated_data.pop('variations')
                 self.instance = CartItem.objects.create(cart_id=cart_id,**self.validated_data)
                 if variation_list is not None:
                     print(variation_list,'   :   ',*variation_list)
@@ -175,7 +191,9 @@ class AddCartItemSerializer(serializers.ModelSerializer):
         #     self.instance = cart_item
         # except CartItem.DoesNotExist:
             # variation_list = validated_data.get('variations')
-            self.validated_data.pop('variations')
+            if self.validated_data.get('variations') is not None:
+                self.validated_data.pop('variations')
+
             self.instance = CartItem.objects.create(cart_id=cart_id,**self.validated_data)
             if variation_list is not None:
                 print(variation_list,'   :   ',*variation_list)

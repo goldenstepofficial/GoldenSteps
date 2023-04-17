@@ -31,7 +31,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = (os.getenv('DEBUG','False').lower() in ('true','1'))
 
-ALLOWED_HOSTS = []
+#ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -108,7 +108,7 @@ DATABASES = {
 
     # * PostgreSQL database configuration
     "production": {
-        'ENGINE':'django.db.backends.postgresql',
+        'ENGINE':'django.db.backends.postgresql_psycopg2',
         'NAME':os.getenv('PG_DATABASE_NAME'),
         'USER':os.getenv('PG_USER'),
         'PASSWORD':os.getenv('PG_PASSWORD'),
@@ -118,8 +118,8 @@ DATABASES = {
 }
 
 
-# DATABASES["default"] = DATABASES[ "dev" if DEBUG else "production" ]
-DATABASES["default"] = DATABASES["dev"]
+DATABASES["default"] = DATABASES[ "dev" if DEBUG else "production" ]
+#DATABASES["default"] = DATABASES["dev"]
 
 
 # use User class as default auth model
@@ -248,4 +248,50 @@ ALLOWED_HOSTS = [
 ALLOWED_HOSTS += CLOUDFLARE_IPV4 + CLOUDFLARE_IPV6
 
 
+#CORS_ALLOWED_ORIGINS = [
+#        "http://localhost:3000",
+#       "https://goldenstep.in",
+#       "http://127.0.0.1:3000",
+#        ]
 
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    "https://goldenstep.in",
+    "http://127.0.0.1:3000",
+]
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',  # for localhost (REACT Default)
+    'http://localhost:8080',  # for localhost (Developlemt)
+    'https://goldenstep.in',
+]
+
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ORIGIN_WHITELIST = (
+    'http://localhost:3000',  # for localhost (REACT Default)
+    'http://localhost:8080',  # for localhost (Developlemt)
+)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': '/home/backend-dev/goldensteps/GoldenSteps/debug.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
+
+CORS_ALLOW_ALL_ORIGINS = True
