@@ -83,6 +83,7 @@ class SimpleProductSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['image'] = self.context['request'].build_absolute_uri(instance.image.url)
+        representation['slug']  = slugify(instance.name)
         return representation
 
 
