@@ -6,9 +6,14 @@ class VariationInline(admin.TabularInline):
     model = Variation
     extra = 1
 
+class ProductGalleryInline(admin.TabularInline):
+    model = ProductGallery
+    extra = 1
+
+
 class ProductAdmin(admin.ModelAdmin):
     list_display = ['id','name','category','sub_category','price','stock','is_available']
-    inlines = (VariationInline,)
+    inlines = (VariationInline,ProductGalleryInline)
 
 
 class CartItemAdmin(admin.ModelAdmin):

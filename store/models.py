@@ -53,7 +53,8 @@ class Product(models.Model):
                             )
     name          = models.CharField(max_length=100)
     image         = CloudinaryField('products/images/')
-    details       = models.JSONField()
+    details       = models.JSONField(default=dict,null=True,blank=True)
+    description   = models.TextField()
     price         = models.IntegerField()
     stock         = models.IntegerField()
     is_available  = models.BooleanField(default=True)
@@ -70,7 +71,7 @@ class ProductGallery(models.Model):
     image   = CloudinaryField('review/images/')
 
     def __str__(self):
-        return self.product
+        return self.product.name
 
     class Meta:
         verbose_name = "product gallery"

@@ -60,7 +60,7 @@ def create_order(request,*args,**kwargs):
         for item in cart_items:
             total_price += item.product.price * item.quantity
             
-        data['order_total'] = total_price + (total_price * 18)//100
+        data['order_total'] = total_price
         data['cart'] = cart_id
         data['user'] = request.user.id if request.user.is_authenticated else None
         order = create_order_object(data)
@@ -76,7 +76,7 @@ def create_order(request,*args,**kwargs):
             return Response({"error": "'quantity' is required"},status=status.HTTP_400_BAD_REQUEST)
         
         total_price = product.price * int(quantity)
-        data['order_total'] = total_price + (total_price * 18)//100
+        data['order_total'] = total_price 
 
         variation_list = []
 
@@ -143,6 +143,7 @@ def create_order(request,*args,**kwargs):
             order.save()
             return Response(resp_data)
         else:
+            print(response.json())
             return Response({"error": "failed to create order","description":response},status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"errro":"something went wrong. please try again"},status=status.HTTP_503_SERVICE_UNAVAILABLE)
