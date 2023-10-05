@@ -61,7 +61,7 @@ def make_charge_request(amount, transaction_id, mobile_number, salt_key_index):
         "merchantUserId": "1234567890",
         "redirectUrl": f"https://goldenstep.in/payment-status/{transaction_id}/",
         "redirectMode": "REDIRECT",
-        "callbackUrl": "https://fb53-2401-4900-1f3f-56fb-5a11-3aa6-f581-e599.ngrok-free.app/order/notify_on_payment/",
+        "callbackUrl": "https://backend.goldenstep.in/order/notify_on_payment/",
         "paymentInstrument": {
             "type": "PAY_PAGE"
             }
