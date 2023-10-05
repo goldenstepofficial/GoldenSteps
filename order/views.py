@@ -15,6 +15,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from dotenv import load_dotenv
 from django.shortcuts import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from .utils import (initiate_payment_cashfree,
                     initiate_payment_phonepe, 
@@ -23,7 +24,7 @@ from .utils import (initiate_payment_cashfree,
                     get_cashfree_order_status)
 from .serializers import OrderSerializer, OrderItemsSerializer
 from store.models import Cart, CartItem, Product, Variation
-from .models import Order,OrderItems
+from .models import Order, OrderItems, Coupon
 
 load_dotenv()
 
@@ -46,6 +47,21 @@ def create_order(request,*args,**kwargs):
     
     cart_id = request.data.get('cart_id')
     product_id = request.data.get('product_id')
+    
+    coupon_code = request.data.get('coupon_code')
+    discount_rate = 0
+    if coupon_code is not None:
+        try:
+            coupon = Coupon.objects.get(coupon_code=coupon_code)
+        except:
+            return Response({"coupon_code":"invalid coupon code"},status=status.HTTP_400_BAD_REQUEST)
+
+        if not coupon.is_valid(request.user):
+            return Response({"coupon_code is expired or already redeemed by you"},status=status.HTTP_400_BAD_REQUEST)
+
+        discount_rate = coupon.discount_rate
+
+
 
     if cart_id is None and product_id is None:
         return Response({"error": "either 'cart_id' or 'product_id' is required"},status=status.HTTP_400_BAD_REQUEST)
@@ -67,7 +83,7 @@ def create_order(request,*args,**kwargs):
         for item in cart_items:
             total_price += item.product.price * item.quantity
             
-        data['order_total'] = total_price
+        data['order_total'] = total_price - ( (total_price * discount_rate)//100 )
         data['cart'] = cart_id
         data['user'] = request.user.id if request.user.is_authenticated else None
         order = create_order_object(data)
@@ -83,7 +99,7 @@ def create_order(request,*args,**kwargs):
             return Response({"error": "'quantity' is required"},status=status.HTTP_400_BAD_REQUEST)
         
         total_price = product.price * int(quantity)
-        data['order_total'] = total_price 
+        data['order_total'] = total_price - ( (total_price * discount_rate)//100 )
 
         variation_list = []
 
@@ -234,3 +250,28 @@ def get_order_status(request):
     serializer = OrderSerializer(order)
 
     return Response({"order_status": serializer.data})
+
+
+
+
+@csrf_exempt
+@api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+def validate_coupon(request):
+    coupon_code = request.data.get('coupon_code')
+    if coupon_code is None:
+        return Response({"coupon_code":"this field is required"},status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        coupon = Coupon.objects.get(coupon_code=coupon_code)
+    except:
+        return Response({"coupon_code":"invalid coupon code"},status=status.HTTP_400_BAD_REQUEST)
+
+        
+    if not coupon.is_valid(request.user):
+        return Response({"coupon_code is expired or already redeemed by you"},status=status.HTTP_400_BAD_REQUEST)
+    resp = {}
+    resp["discount_rate"] = coupon.discount_rate
+    return Response(resp)
+
+    return Response({"coupon_code":"invalid coupon code"},status=status.HTTP_400_BAD_REQUEST)

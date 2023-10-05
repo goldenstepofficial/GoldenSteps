@@ -2,6 +2,8 @@ from django.db import models
 from users.models import User
 from store.models import Product,Variation
 import uuid
+import random
+from datetime import datetime, timedelta
 
 from store.models import Cart
 
@@ -70,3 +72,47 @@ class OrderItems(models.Model):
 
     def __str__(self):
         return self.product.name
+
+
+
+def get_coupon_code():
+    code_chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    code = ''
+    for i in range(0, 6):
+        slice_start = random.randint(0, len(code_chars) - 1)
+        code += code_chars[slice_start: slice_start + 1]
+    return code
+
+
+def default_validity():
+    return datetime.now() + timedelta(days=365)
+
+
+class Coupon(models.Model):
+    coupon_code           = models.CharField(max_length=20,default=get_coupon_code)
+    discount_rate         = models.IntegerField()
+    valid_till            = models.DateTimeField(blank=True, null=True,default=default_validity)
+    max_redeem_count      = models.IntegerField(default=100)
+    redeemed_by           = models.JSONField(default=dict,blank=True)
+    created_at            = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self,user):
+        user_redeem_count = self.redeemed_by.get(str(user.id))
+        if user_redeem_count is not None and user_redeem_count['count'] > self.max_redeem_count:
+            return False
+            
+        return self.valid_till.timestamp() > datetime.now().timestamp()
+        
+
+    def redeem(self,user,price):
+        if self.is_valid(user):
+            if self.redeemed_by.get(str(user.id)) is None:
+                self.redeemed_by[str(user.id)] = {"count":0}
+            self.redeemed_by[str(user.id)]['count'] += 1
+            self.save()
+            if self.is_discount_in_rate and self.discount <= 50:
+                discount = (price * self.discount) / 100
+            else:
+                discount = self.discount
+            return float('{0:.2f}'.format(discount))
+        return 0
