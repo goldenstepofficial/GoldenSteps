@@ -1,19 +1,26 @@
-from django.shortcuts import render
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated,AllowAny
-from rest_framework import status
-from rest_framework.response import Response
-from django.shortcuts import HttpResponse
-
 import requests
 from datetime import datetime,timedelta
 import pytz
 import string
 import random
 import os
-from dotenv import load_dotenv
 import json
+import base64
+import time
 
+from django.shortcuts import render,HttpResponseRedirect
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework import status
+from rest_framework.response import Response
+from dotenv import load_dotenv
+from django.shortcuts import HttpResponse
+
+from .utils import (initiate_payment_cashfree,
+                    initiate_payment_phonepe, 
+                    get_payment_status_phonepe,
+                    process_order_on_payment_complete, 
+                    get_cashfree_order_status)
 from .serializers import OrderSerializer, OrderItemsSerializer
 from store.models import Cart, CartItem, Product, Variation
 from .models import Order,OrderItems
@@ -103,107 +110,127 @@ def create_order(request,*args,**kwargs):
     
 
     try:
-        time_zone = pytz.timezone('Asia/Kolkata')
-        exp_time = datetime.now(time_zone) + timedelta(minutes=20)
-        exp_time = exp_time.strftime('%Y-%m-%dT%H:%M:%S%z')
-        exp_time = exp_time[:-2] + ":" + exp_time[-2:]
+        payment_platform = os.getenv('PAYMENT_PLATFORM')
+        if payment_platform == 'cashfree':
+            """ logic for initiating payment for order on cashfree """""
+            response = initiate_payment_cashfree(order)
 
+            if response.ok:
+                resp_data = response.json()
+                order.cf_order_id = resp_data.get('cf_order_id')
+                order.save()
+                return Response(resp_data)
+            else:
+                print(response.json())
+                return Response({"error": "failed to create order","description":response},status=status.HTTP_400_BAD_REQUEST)
 
-        payload = {
-            "order_id": str(order.order_id),
-            "order_amount": order.order_total,
-            "order_currency": "INR",
-            "customer_details": {
-                "customer_id": str(order.customer_id),
-                "customer_name": order.first_name + " " + order.last_name,
-                "customer_email": order.email,
-                "customer_phone": order.phone_number,
-            },
-            "order_meta": {
-                "return_url": "http://localhost:8000/order/notify_on_payment/?order_id={order_id}",
-            },
-            "order_expiry_time": exp_time,
-            "order_note": "Test order",
-            "order_tags": {"additionalProp": "string"},
-        }
-        headers = {
-            "accept": "application/json",
-            "x-client-id": os.getenv("CLIENT_ID"),
-            "x-client-secret": os.getenv("CLIENT_SECRET"),
-            "x-api-version": "2022-09-01",
-            "content-type": "application/json"
-        }
+        elif payment_platform == 'phonepe':
+            """ logic for initiating payment for  order on phonepe """""
+            status, data = initiate_payment_phonepe(order)
 
-        url = "https://sandbox.cashfree.com/pg/orders"
-        response = requests.post(url, json=payload, headers=headers)
-
-        if response.ok:
-            resp_data = response.json()
-            order.cf_order_id = resp_data.get('cf_order_id')
-            order.save()
-            return Response(resp_data)
-        else:
-            print(response.json())
-            return Response({"error": "failed to create order","description":response},status=status.HTTP_400_BAD_REQUEST)
+            if status:
+                return Response(data)
+            else:
+                return Response({"error": "failed to create order","description":data},status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"errro":"something went wrong. please try again"},status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 
 
-@api_view(['POST','GET'])
+@api_view(['POST'])
 def notify_on_payment(request):
-    
-    def get_order_status(order_id):
-        url = f"https://sandbox.cashfree.com/pg/orders/{order_id}"
-        headers = {
-            "accept": "application/json",
-            "x-client-id": os.getenv("CLIENT_ID"),
-            "x-client-secret": os.getenv("CLIENT_SECRET"),
-            "x-api-version": "2022-09-01",
-            "content-type": "application/json"
-        }
-        response = requests.get(url, headers=headers)
-        return response
+    payment_platform = os.getenv('PAYMENT_PLATFORM')
+    if payment_platform == 'cashfree':
+        """ logic for handling payment notification from cashfree """""
 
-    order_id = request.GET.get('order_id')
-    if order_id is None:
-        return Response({"error": "Order_id is required"},status=status.HTTP_400_BAD_REQUEST)
-    
-    response = get_order_status(order_id).json()
+        order_id = request.GET.get('order_id')
+        if order_id is None:
+            return Response({"error": "Order_id is required"},status=status.HTTP_400_BAD_REQUEST)
+        
+        response = get_cashfree_order_status(order_id).json()
+        retry_count = 0
+        delay = 1
+        
+        while retry_count < 5 and response.get("order_status") != "PAID":
+            response = get_cashfree_order_status(order_id).json()
+            retry_count += 1
+            time.sleep(delay)
+            delay *= 2
 
-    # if cashfree returns order status as paid then update record accordingly
-    if response.get("order_status") == "PAID":
-        try:
-            order = Order.objects.get(order_id=order_id)
-            order.is_paid = True
-            order.payment = response
-            order.save()
+        # if cashfree returns order status as paid then update record accordingly
+        if response.get("order_status") == "PAID":
+            process_order_on_payment_complete(order_id,response)
+            return HttpResponseRedirect('https://goldenstep.in/payment-success')
+        else:
+            return HttpResponseRedirect('https://goldenstep.in/payment-failed')
+            # return Response(response.json())
 
-            # move items from cart to orderItems
-            if order.cart is not None:
-                cart_items = CartItem.objects.filter(cart=order.cart)
-                for cart_item in cart_items:
-                    order_item = OrderItems.objects.create(  
-                                                order=order,product=cart_item.product,
-                                                quantity=cart_item.quantity,
-                                                product_price=cart_item.product.price,
-                                                ordered=True
-                                                )
-                    order_item.variation.set(cart_item.variation.all())
-                    order_item.save()
-                cart_items.delete()
-
-            else:
-                order_items = OrderItems.objects.filter(order=order)
-                for order_item in order_items:
-                    order_item.ordered = True
-                    order_item.save()
-
-        except:
-            pass
-        return HttpResponse("<h1>Payment Done</h1>")
-        # return Response(response.json())
+    elif payment_platform == 'phonepe':
+        """ logic for handling payment notification from phonepe"""""
+        encoded_response = request.data['response']
+        decoded_string = base64.b64decode(encoded_response)
+        phonepe_response = json.loads(decoded_string)
+        
+        print(phonepe_response)
+        # if phonepe returns order status as paid then update record accordingly
+        if phonepe_response.get("code") == "PAYMENT_SUCCESS":
+            order_id = phonepe_response['data'].get('merchantTransactionId')
+            response = get_payment_status_phonepe(order_id)
+            retry_count = 0
+            delay = 1
+            while retry_count < 5 and response.get("code") != "PAYMENT_SUCCESS":
+                response = get_payment_status_phonepe(order_id)
+                retry_count += 1
+                time.sleep(delay)
+                delay *= 2
+                
+            if response.get("code") == "PAYMENT_SUCCESS":
+                phonepe_response['data']['amount'] = round(phonepe_response['data']['amount']/100,2)
+                process_order_on_payment_complete(order_id,phonepe_response)
+                return HttpResponseRedirect('https://goldenstep.in/payment-success')
+            return HttpResponseRedirect('https://goldenstep.in/payment-failed')
+        else:
+            return HttpResponseRedirect('https://goldenstep.in/payment-failed')
+            # return Response(response.json())
     else:
-        return HttpResponse("<h1>Payment Failed</h1>")
-        # return Response(response.json())
+        return Response({"error": "invalid payment method"},status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['GET'])
+def get_payment_status(request):
+    order_id = request.data.get('order_id')
+    if order_id is None:
+        return Response({"error": "order_id is required"},status=status.HTTP_400_BAD_REQUEST)
+
+    payment_platform = os.getenv('PAYMENT_PLATFORM')
+    if payment_platform == 'cashfree':
+        """ logic for getting order status from cashfree """""
+        response = get_cashfree_order_status(order_id)
+        return Response(response.json())
+
+    elif payment_platform == 'phonepe':
+        """ logic for getting order status from phonepe """""
+        response = get_payment_status_phonepe(order_id)
+        response['data']['amount'] = round(response['data']['amount']/100,2)
+        return Response(response)
+
+    else:
+        return Response({"error": "invalid payment method"},status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def get_order_status(request):
+    order_id = request.data.get('order_id')
+    if order_id is None:
+        return Response({"error": "order_id is required"},status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        order = Order.objects.get(order_id=order_id)
+    except:
+        return Response({"error": "invalid order_id"},status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = OrderSerializer(order)
+
+    return Response({"order_status": serializer.data})

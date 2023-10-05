@@ -32,6 +32,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = (os.getenv('DEBUG','False').lower() in ('true','1'))
 
 #ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -275,23 +276,29 @@ CORS_ORIGIN_WHITELIST = (
     'http://localhost:8080',  # for localhost (Developlemt)
 )
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': '/home/backend-dev/goldensteps/GoldenSteps/debug.log',
+if not DEBUG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'file': {
+                'level': 'INFO',
+                'class': 'logging.FileHandler',
+                'filename': '/home/backend-dev/goldensteps/GoldenSteps/debug.log',
+            },
         },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['file'],
-            'level': 'DEBUG',
-            'propagate': True,
+        'loggers': {
+            'django': {
+                'handlers': ['file'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
         },
-    },
-}
+    }
 
 CORS_ALLOW_ALL_ORIGINS = True
+OAUTH2_PROVIDER_APPLICATION_MODEL="oauth2_provider.Application"
+OAUTH2_PROVIDER_ACCESS_TOKEN_MODEL="oauth2_provider.AccessToken"
+OAUTH2_PROVIDER_ID_TOKEN_MODEL="oauth2_provider.IDToken"
+OAUTH2_PROVIDER_GRANT_MODEL="oauth2_provider.Grant"
+OAUTH2_PROVIDER_REFRESH_TOKEN_MODEL="oauth2_provider.RefreshToken"
