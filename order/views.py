@@ -11,7 +11,7 @@ import time
 from django.shortcuts import render,HttpResponseRedirect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated,AllowAny
-from rest_framework import status
+from rest_framework import status as dstatus
 from rest_framework.response import Response
 from dotenv import load_dotenv
 from django.shortcuts import HttpResponse
@@ -44,7 +44,7 @@ def create_order(request,*args,**kwargs):
             return Response(serializer.errors)
         return serializer.save()
 
-    
+
     cart_id = request.data.get('cart_id')
     product_id = request.data.get('product_id')
     
@@ -54,17 +54,17 @@ def create_order(request,*args,**kwargs):
         try:
             coupon = Coupon.objects.get(coupon_code=coupon_code)
         except:
-            return Response({"coupon_code":"invalid coupon code"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"coupon_code":"invalid coupon code"},status=dstatus.HTTP_400_BAD_REQUEST)
 
         if not coupon.is_valid(request.user):
-            return Response({"coupon_code is expired or already redeemed by you"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"coupon_code is expired or already redeemed by you"},status=dstatus.HTTP_400_BAD_REQUEST)
 
         discount_rate = coupon.discount_rate
 
 
 
     if cart_id is None and product_id is None:
-        return Response({"error": "either 'cart_id' or 'product_id' is required"},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "either 'cart_id' or 'product_id' is required"},status=dstatus.HTTP_400_BAD_REQUEST)
 
     data = request.data.copy()
     data['ip'] = request.META.get('REMOTE_ADDR')
@@ -73,11 +73,11 @@ def create_order(request,*args,**kwargs):
         try:
             cart = Cart.objects.get(id=cart_id)
         except:
-            return Response({"error": "Invalid cart_id"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid cart_id"},status=dstatus.HTTP_400_BAD_REQUEST)
 
         cart_items = CartItem.objects.filter(cart=cart)
         if cart_items.count() == 0:
-            return Response({"error": "your cart is empty. try again after adding some items to your cart"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "your cart is empty. try again after adding some items to your cart"},status=dstatus.HTTP_400_BAD_REQUEST)
 
         total_price = 0
         for item in cart_items:
@@ -92,11 +92,11 @@ def create_order(request,*args,**kwargs):
         try:
             product = Product.objects.get(id=product_id)
         except:
-            return Response({"error": "Invalid 'product_id"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid 'product_id"},status=dstatus.HTTP_400_BAD_REQUEST)
 
         quantity = request.data.get('quantity')
         if quantity is None:
-            return Response({"error": "'quantity' is required"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "'quantity' is required"},status=dstatus.HTTP_400_BAD_REQUEST)
         
         total_price = product.price * int(quantity)
         data['order_total'] = total_price - ( (total_price * discount_rate)//100 )
@@ -108,7 +108,7 @@ def create_order(request,*args,**kwargs):
             try:
                 variations = json.loads(variations)
             except:
-                return Response({"error": "Invalid variation format. please send in json format only"},status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Invalid variation format. please send in json format only"},status=dstatus.HTTP_400_BAD_REQUEST)
             for key in variations:
                 value = variations[key]
                 try:
@@ -138,7 +138,7 @@ def create_order(request,*args,**kwargs):
                 return Response(resp_data)
             else:
                 print(response.json())
-                return Response({"error": "failed to create order","description":response},status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "failed to create order","description":response},status=dstatus.HTTP_400_BAD_REQUEST)
 
         elif payment_platform == 'phonepe':
             """ logic for initiating payment for  order on phonepe """""
@@ -147,9 +147,9 @@ def create_order(request,*args,**kwargs):
             if status:
                 return Response(data)
             else:
-                return Response({"error": "failed to create order","description":data},status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "failed to create order","description":data},status=dstatus.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        return Response({"errro":"something went wrong. please try again"},status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({"errro":"something went wrong. please try again"},status=dstatus.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 
@@ -162,7 +162,7 @@ def notify_on_payment(request):
 
         order_id = request.GET.get('order_id')
         if order_id is None:
-            return Response({"error": "Order_id is required"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Order_id is required"},status=dstatus.HTTP_400_BAD_REQUEST)
         
         response = get_cashfree_order_status(order_id).json()
         retry_count = 0
@@ -210,7 +210,7 @@ def notify_on_payment(request):
             return HttpResponseRedirect('https://goldenstep.in/payment-failed')
             # return Response(response.json())
     else:
-        return Response({"error": "invalid payment method"},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "invalid payment method"},status=dstatus.HTTP_400_BAD_REQUEST)
 
 
 
@@ -218,7 +218,7 @@ def notify_on_payment(request):
 def get_payment_status(request):
     order_id = request.data.get('order_id')
     if order_id is None:
-        return Response({"error": "order_id is required"},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "order_id is required"},status=dstatus.HTTP_400_BAD_REQUEST)
 
     payment_platform = os.getenv('PAYMENT_PLATFORM')
     if payment_platform == 'cashfree':
@@ -233,19 +233,19 @@ def get_payment_status(request):
         return Response(response)
 
     else:
-        return Response({"error": "invalid payment method"},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "invalid payment method"},status=dstatus.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
 def get_order_status(request):
     order_id = request.data.get('order_id')
     if order_id is None:
-        return Response({"error": "order_id is required"},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "order_id is required"},status=dstatus.HTTP_400_BAD_REQUEST)
 
     try:
         order = Order.objects.get(order_id=order_id)
     except:
-        return Response({"error": "invalid order_id"},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "invalid order_id"},status=dstatus.HTTP_400_BAD_REQUEST)
 
     serializer = OrderSerializer(order)
 
@@ -260,18 +260,18 @@ def get_order_status(request):
 def validate_coupon(request):
     coupon_code = request.data.get('coupon_code')
     if coupon_code is None:
-        return Response({"coupon_code":"this field is required"},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"coupon_code":"this field is required"},status=dstatus.HTTP_400_BAD_REQUEST)
 
     try:
         coupon = Coupon.objects.get(coupon_code=coupon_code)
     except:
-        return Response({"coupon_code":"invalid coupon code"},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"coupon_code":"invalid coupon code"},status=dstatus.HTTP_400_BAD_REQUEST)
 
         
     if not coupon.is_valid(request.user):
-        return Response({"coupon_code is expired or already redeemed by you"},status=status.HTTP_400_BAD_REQUEST)
+        return Response({"coupon_code is expired or already redeemed by you"},status=dstatus.HTTP_400_BAD_REQUEST)
     resp = {}
     resp["discount_rate"] = coupon.discount_rate
     return Response(resp)
 
-    return Response({"coupon_code":"invalid coupon code"},status=status.HTTP_400_BAD_REQUEST)
+    return Response({"coupon_code":"invalid coupon code"},status=dstatus.HTTP_400_BAD_REQUEST)
