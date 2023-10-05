@@ -3,7 +3,7 @@ cloudinary==1.30.0
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.2.2
 python-dotenv==0.21.0
-drf-social-oauth2==1.2.1
+drf-social-oauth2==2.0.0
 django-debug-toolbar==3.8.1
 drf-nested-routers==0.93.4
 psycopg2==2.9.5
